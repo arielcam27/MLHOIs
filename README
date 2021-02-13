@@ -1,0 +1,6 @@
+Code for manuscript "Machine learning approach for higher-order interactions detection to ecological communities management" by María Evarista Arellano-García, José Ariel Camacho-Gutiérrez, and Selene Solorza-Calderón.
+
+Notes:
+- Make sure "/data" folder contains experimental data in appropriate csv files.
+- Make sure to have Julia lang installed, and change line 13 of "hoi-master-V4.r" to indicate Julia location.
+- Run "hoi-master-V4.r" in the same folder as data folder and the remaining R files.
