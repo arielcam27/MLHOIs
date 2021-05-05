@@ -320,6 +320,10 @@ simulateODE3 <- function(parSingle, parPair, df3, speciesN, replicateNum) {
 simulateODE3(parSingle, parPair, df_neb_sim_ebo, 2, 3)
 
 #--------------------------------
+
+
+# STEP 3: Generate testing samples.
+
 message("Generating testing samples...")
 # gen_samples_V2: Lotka-Volteraa parameters as is. 
 # Random initial conditions, bijk random from -10 to 10 (hard coded).
@@ -368,7 +372,7 @@ for (ii in 1:number){
 
   #---------------
 
-# STEP 5: Performe classical tests
+# STEP 4: Perform classical tests.
 
 change_ABC <- function(df1, df2, df3, row, column) {
   Out <- data.frame(0, 0, 0)
@@ -633,8 +637,12 @@ for (ii in 1:number) {
 
 
 #-----
+
+# STEP 5: Generate training samples for ML models.
+
 message("Creating training sets")
 
+# Number of desired sambples for training ML models.
 number_train = 10000
 
 noise = 0.0
@@ -699,6 +707,9 @@ print(list_svm$acc)
 
 
 #------------
+
+# STEP 6: Challenge ML models.
+
 
 message("Check: GLM...")
 
@@ -980,6 +991,8 @@ for (ii in 1:number) {
 }
 
 #----------------------------------------
+
+# STEP 7: Predict HOI/NON-HOI label for experimental data.
 
 dataOut_A <-read.table("./data/1-neb.csv",sep=",")
 colnames(dataOut_A) <- c("week", "replicate", "x1")
