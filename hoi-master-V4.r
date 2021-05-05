@@ -1,20 +1,21 @@
 # required packages
-library(plotly)
-library("FME")
-library(caret)
-library(pROC)
-library(e1071)
-library(nlme)
-require(ggpubr)
-require(sets)
-require(growthrates)
-require(magrittr)
+library(plotly)       # plotting
+require(ggpubr)       # plotting
+library("FME")        # fitting models to data
+require(growthrates)  # fitting models to data 
+library(caret)        # ML models
+library(pROC)         # ML models
+library(e1071)        # ML models
+library(nlme)         # Statistics
+require(sets)         # Data structure
+require(magrittr)     # pipe operator
 
-# important: JuliaLang and JuliaCall needed
+# IMPORTANTE: JuliaLang and JuliaCall required for SDEs solver.
 library(JuliaCall)
 julia_setup(JULIA_HOME = "/home/user/julia-0.6.4/bin") # change dir to local Julia
 diffeqr::diffeq_setup()
 
+# Scripts.
 source("get_single_V4.r")   # estimate r, K from single-species
 source("get_pairwise_V4.r") # estimate a_ij from pairwise-species
 source("get_three_V4.r")    # estimate b_ijk from threewise-species
