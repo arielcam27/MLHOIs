@@ -207,7 +207,7 @@ sim_ebo_mean = get_mean2(df_sim_ebo0) # Simulans vs Ebony.
 #------------------------------------------
 
 
-# STEP 2: Read data and estimate b_ijk from 3-species data.
+# STEP 3: Read data and estimate b_ijk from 3-species data.
 
 # Input: One csv file.
 # Current version requires each csv file to have this structure:
@@ -323,7 +323,7 @@ simulateODE3(parSingle, parPair, df_neb_sim_ebo, 2, 3)
 #--------------------------------
 
 
-# STEP 3: Generate testing samples.
+# STEP 4: Generate testing samples.
 
 message("Generating testing samples...")
 # gen_samples_V2: Lotka-Volteraa parameters as is. 
@@ -371,9 +371,9 @@ for (ii in 1:number){
   lines(1:21, df_res4$df_HOI1SDE1[ii,1:21])
 }
 
-  #---------------
+#---------------
 
-# STEP 4: Perform classical tests.
+# STEP 5: Perform classical tests on synthetic samples.
 
 change_ABC <- function(df1, df2, df3, row, column) {
   # Function to re-organize data to perform tests.
@@ -658,7 +658,7 @@ for (ii in 1:number) {
 
 #-----
 
-# STEP 5: Generate training samples for ML models.
+# STEP 6: Generate training samples for ML models.
 
 message("Creating training sets")
 
@@ -730,7 +730,7 @@ print(list_svm$acc)
 
 #------------
 
-# STEP 6: Challenge ML models.
+# STEP 7: Challenge ML models on synthetic samples.
 
 
 message("Check: GLM...")
@@ -1014,7 +1014,7 @@ for (ii in 1:number) {
 
 #----------------------------------------
 
-# STEP 7: Predict HOI/NON-HOI label for experimental data.
+# STEP 8: Predict HOI/NON-HOI label for experimental data.
 
 # Bender-Case test.
 dataOut_A <-read.table("./data/1-neb.csv",sep=",")
