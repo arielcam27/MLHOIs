@@ -4,3 +4,8 @@ Notes:
 - Make sure "/data" folder contains experimental data in appropriate csv files.
 - Make sure to have Julia lang installed, and change line 13 of "hoi-master-V4.r" to indicate Julia location.
 - Run "hoi-master-V4.r" in the same folder as data folder and the remaining R files.
+- Required structure for experimental data is described in hoi-master-V4.r
+
+TODO:
+- Automatize number of species, number of replicates, and time interval.
+- Incorporate hyperparameters in master file instead of individual scripts.
