@@ -1,18 +1,28 @@
 gen_samples <- function(number, parSingle, parPair, parThree) {
+# Function to generate synthetic samples to test models.
+# INPUT: number of samples, 1-species parameters, 2-species parameters,
+# 3-species paramenters.
+# OUTPUT: Dataframes with HOI and NON-HOI samples.
+# TODO: Remove hard coded dataframes with noisy samples.
   
   modelHOI= function(u, p, t) {
+    # Deterministic HOI model.
+    
     r1 = p[[1]]
     r2 = p[[2]]
     r3 = p[[3]]
+    
     K1 = p[[4]]
     K2 = p[[5]]
     K3 = p[[6]]
+    
     a12 = p[[7]]
     a13 = p[[8]]
     a21 = p[[9]]
     a23 = p[[10]]
     a31 = p[[11]]
     a32 = p[[12]]
+    
     b123 = p[[13]]
     b231 = p[[14]]
     b312 = p[[15]]
@@ -28,18 +38,23 @@ gen_samples <- function(number, parSingle, parPair, parThree) {
   }
   
   modelNONHOI= function(u, p, t) {
+    # Deterministic NON-HOI model.
+    
     r1 = p[[1]]
     r2 = p[[2]]
     r3 = p[[3]]
+    
     K1 = p[[4]]
     K2 = p[[5]]
     K3 = p[[6]]
+    
     a12 = p[[7]]
     a13 = p[[8]]
     a21 = p[[9]]
     a23 = p[[10]]
     a31 = p[[11]]
     a32 = p[[12]]
+    
     b123 = 0
     b231 = 0
     b312 = 0
@@ -60,6 +75,7 @@ gen_samples <- function(number, parSingle, parPair, parThree) {
     return(-0.5^2 * c(u[1], u[2], u[3]))
   }
   
+  # Empty dataframes.
   
   dataOutHOI <- data.frame(0, 0, 0, 0, 0, 0, 0,
                            0, 0, 0, 0, 0, 0, 0,
@@ -430,17 +446,22 @@ gen_samples <- function(number, parSingle, parPair, parThree) {
                                    "x31", "x32", "x33", "x34", "x35", "x36", "x37",
                                    "isHOI")
 
+  # Index for keeping track of number of samples generated.
   index <- 1
+  # Tolerance level to accept "sufficiently different" HOI and NON-HOI samples.
   TOL <- 50
   
   while (index < number + 1) {
+    # Print progress.
     if (index == 1) { cat("Progress:", index, "\n") }
     if (index %% 100 == 0) { cat("Progress:", index, "\n") }
     
+    # Generate random initial conditions (hard coded).
     start = c(x1=runif(1, min=2, max=10), 
               x2=runif(1, min=2, max=10), 
               x3=runif(1, min=2, max=10))
     
+    # Prepare initial conditions for 1- and 2-species.
     start1 <- c(start[1], 0, 0)
     start2 <- c(0, start[2], 0)
     start3 <- c(0, 0, start[3])
@@ -448,6 +469,7 @@ gen_samples <- function(number, parSingle, parPair, parThree) {
     start5 <- c(start[1], 0, start[3])
     start6 <- c(0, start[2], start[3])
     
+    # Generate random model parameters (hard coded).
     r1 = parSingle[1,1] * (1 + runif(1, -0.2, 0.2))
     r2 = parSingle[1,2] * (1 + runif(1, -0.2, 0.2))
     r3 = parSingle[1,3] * (1 + runif(1, -0.2, 0.2))
@@ -469,6 +491,7 @@ gen_samples <- function(number, parSingle, parPair, parThree) {
     j2 <- parThree[2] * (1 + runif(1, -1.0, 4.0))
     j3 <- parThree[3] * (1 + runif(1, -1.0, 4.0))
     
+    # Check if HOI parameters are "big enough" (hard coded).
     flag1 = abs(j1) > 0.00001
     flag2 = abs(j2) > 0.00001
     flag3 = abs(j3) > 0.00001
@@ -479,6 +502,7 @@ gen_samples <- function(number, parSingle, parPair, parThree) {
       b231 <- j2
       b312 <- j3
       
+      # Parameter vector p.
       par = c(r1=r1, r2=r2, r3=r3, 
               K1=K1, K2=K2, K3=K3, 
               a12=a12, a13=a13, a21=a21, a23=a23, a31=a31, a32=a32,
@@ -486,29 +510,34 @@ gen_samples <- function(number, parSingle, parPair, parThree) {
       
       tryCatch(
         {
+          # HOI sample.
           outHOI = diffeqr::ode.solve(f = modelHOI, u0 = start, tspan = list(0, 7), p = par, saveat=1.0)
           out2HOI = data.frame(time = outHOI$t, x1 = outHOI$u[,1], x2 = outHOI$u[,2], x3 = outHOI$u[,3])
           out2HOI = out2HOI[-1,]
           colnames(out2HOI) <- c("time", "x1", "x2", "x3")
           
+          # NON-HOI sample.
           outNONHOI = diffeqr::ode.solve(f = modelNONHOI, u0 = start, tspan = list(0, 7), p = par, saveat=1.0)
           out2NONHOI = data.frame(time = outNONHOI$t, x1 = outNONHOI$u[,1], x2 = outNONHOI$u[,2], x3 = outNONHOI$u[,3])
           out2NONHOI = out2NONHOI[-1,]
           colnames(out2NONHOI) <- c("time", "x1", "x2", "x3")
           
+          # Check tolerance level condition.
           flag4 = dist(rbind(unlist(out2HOI), unlist(out2NONHOI))) > TOL
+          
           if (flag4) {
-
+            # Save HOI sample.
             dataOutHOI[index, 1:7]   <- out2HOI$x1
             dataOutHOI[index, 8:14]  <- out2HOI$x2
             dataOutHOI[index, 15:21] <- out2HOI$x3
             dataOutHOI[index, 22]    <- "hoi"
-            
+            # Save NON-HOI sample.
             dataOutNONHOI[index, 1:7]   <- out2NONHOI$x1
             dataOutNONHOI[index, 8:14]  <- out2NONHOI$x2
             dataOutNONHOI[index, 15:21] <- out2NONHOI$x3
             dataOutNONHOI[index, 22]    <- "nonhoi"
             
+            # Generate and save HOI noisy sample (3-species, three replicates).
             sol = diffeqr::sde.solve(f = modelHOI, g = stochastic, u0 = start, tspan = list(0, 7), p = par, saveat=1.0)
             df = data.frame(time = sol$t, x1 = sol$u[,1], x2 = sol$u[,2], x3 = sol$u[,3])
             df = df[-1,]
@@ -536,6 +565,7 @@ gen_samples <- function(number, parSingle, parPair, parThree) {
             dataOutHOISDE3[index, 15:21] <- df$x3
             dataOutHOISDE3[index, 22]    <- "hoi"
             
+            # Generate and save HOI noisy sample (1-species, species #1, three replicates).
             sol = diffeqr::sde.solve(f = modelHOI, g = stochastic, u0 = start1, tspan = list(0, 7), p = par, saveat=1.0)
             df = data.frame(time = sol$t, x1 = sol$u[,1], x2 = sol$u[,2], x3 = sol$u[,3])
             df = df[-1,]
@@ -563,6 +593,7 @@ gen_samples <- function(number, parSingle, parPair, parThree) {
             dataOutHOIsingle1SDE3[index, 15:21] <- df$x3
             dataOutHOIsingle1SDE3[index, 22]    <- "hoi"
             
+            # Generate and save HOI noisy sample (1-species, species #2, three replicates).
             sol = diffeqr::sde.solve(f = modelHOI, g = stochastic, u0 = start2, tspan = list(0, 7), p = par, saveat=1.0)
             df = data.frame(time = sol$t, x1 = sol$u[,1], x2 = sol$u[,2], x3 = sol$u[,3])
             df = df[-1,]
@@ -590,6 +621,7 @@ gen_samples <- function(number, parSingle, parPair, parThree) {
             dataOutHOIsingle2SDE3[index, 15:21] <- df$x3
             dataOutHOIsingle2SDE3[index, 22]    <- "hoi"
             
+            # Generate and save HOI noisy sample (1-species, species #3, three replicates).
             sol = diffeqr::sde.solve(f = modelHOI, g = stochastic, u0 = start3, tspan = list(0, 7), p = par, saveat=1.0)
             df = data.frame(time = sol$t, x1 = sol$u[,1], x2 = sol$u[,2], x3 = sol$u[,3])
             df = df[-1,]
@@ -617,6 +649,7 @@ gen_samples <- function(number, parSingle, parPair, parThree) {
             dataOutHOIsingle3SDE3[index, 15:21] <- df$x3
             dataOutHOIsingle3SDE3[index, 22]    <- "hoi"
             
+            # Generate and save HOI noisy sample (2-species, species #1 vs #2, three replicates).
             sol = diffeqr::sde.solve(f = modelHOI, g = stochastic, u0 = start4, tspan = list(0, 7), p = par, saveat=1.0)
             df = data.frame(time = sol$t, x1 = sol$u[,1], x2 = sol$u[,2], x3 = sol$u[,3])
             df = df[-1,]
@@ -644,6 +677,7 @@ gen_samples <- function(number, parSingle, parPair, parThree) {
             dataOutHOIpairwise1SDE3[index, 15:21] <- df$x3
             dataOutHOIpairwise1SDE3[index, 22]    <- "hoi"
             
+            # Generate and save HOI noisy sample (2-species, species #1 vs #3, three replicates).
             sol = diffeqr::sde.solve(f = modelHOI, g = stochastic, u0 = start5, tspan = list(0, 7), p = par, saveat=1.0)
             df = data.frame(time = sol$t, x1 = sol$u[,1], x2 = sol$u[,2], x3 = sol$u[,3])
             df = df[-1,]
@@ -671,6 +705,7 @@ gen_samples <- function(number, parSingle, parPair, parThree) {
             dataOutHOIpairwise2SDE3[index, 15:21] <- df$x3
             dataOutHOIpairwise2SDE3[index, 22]    <- "hoi"
             
+            # Generate and save HOI noisy sample (2-species, species #2 vs #3, three replicates).
             sol = diffeqr::sde.solve(f = modelHOI, g = stochastic, u0 = start6, tspan = list(0, 7), p = par, saveat=1.0)
             df = data.frame(time = sol$t, x1 = sol$u[,1], x2 = sol$u[,2], x3 = sol$u[,3])
             df = df[-1,]
@@ -698,6 +733,7 @@ gen_samples <- function(number, parSingle, parPair, parThree) {
             dataOutHOIpairwise3SDE3[index, 15:21] <- df$x3
             dataOutHOIpairwise3SDE3[index, 22]    <- "hoi"
             
+            # Generate NON-HOI samples.
             sol = diffeqr::sde.solve(f = modelNONHOI, g = stochastic, u0 = start, tspan = list(0, 7), p = par, saveat=1.0)
             out2NONHOISDE1 = data.frame(time = sol$t, x1 = sol$u[,1], x2 = sol$u[,2], x3 = sol$u[,3])
             out2NONHOISDE1 = out2NONHOISDE1[-1,]
@@ -966,8 +1002,15 @@ gen_samples <- function(number, parSingle, parPair, parThree) {
 
 
 gen_samples_V2 <- function(number, noise, parSingle, parPair, parThree) {
+  # Function to generate synthetic samples to test models.
+  # INPUT: number of samples, 1-species parameters, 2-species parameters,
+  # 3-species paramenters.
+  # OUTPUT: Dataframes with HOI and NON-HOI samples.
+  # TODO: Remove hard coded dataframes with noisy samples.
   
   modelHOI= function(u, p, t) {
+    # Deterministic HOI model.
+    
     r1 = p[[1]]
     r2 = p[[2]]
     r3 = p[[3]]
@@ -995,6 +1038,8 @@ gen_samples_V2 <- function(number, noise, parSingle, parPair, parThree) {
   }
   
   modelNONHOI= function(u, p, t) {
+    # Deterministic NON-HOI model.
+    
     r1 = p[[1]]
     r2 = p[[2]]
     r3 = p[[3]]
@@ -1024,6 +1069,7 @@ gen_samples_V2 <- function(number, noise, parSingle, parPair, parThree) {
     return(- noise^2 * c(u[1], u[2], u[3]))
   }
   
+  # Empty dataframes.
   
   dataOutHOI <- data.frame(0, 0, 0, 0, 0, 0, 0,
                            0, 0, 0, 0, 0, 0, 0,
@@ -1392,17 +1438,22 @@ gen_samples_V2 <- function(number, noise, parSingle, parPair, parThree) {
                                    "x31", "x32", "x33", "x34", "x35", "x36", "x37",
                                    "isHOI")
   
+  # Index for keeping track of number of samples generated.
   index <- 1
+  # Tolerance level to accept "sufficiently different" HOI and NON-HOI samples.
   TOL <- 1
   
   while (index < number + 1) {
+    # Print progress.
     if (index == 1) { cat("Progress:", index, "\n") }
     if (index %% 10 == 0) { cat("Progress:", index, "\n") }
     
+    # Generate random initial conditions (hard coded).
     start = c(x1=runif(1, min=2, max=10), 
               x2=runif(1, min=2, max=10), 
               x3=runif(1, min=2, max=10))
     
+    # Prepare initial conditions for 1- and 2-species.
     start1 <- c(start[1], 0, 0)
     start2 <- c(0, start[2], 0)
     start3 <- c(0, 0, start[3])
@@ -1427,10 +1478,12 @@ gen_samples_V2 <- function(number, noise, parSingle, parPair, parThree) {
     a13 = parPair[1,2] 
     a31 = parPair[2,2] 
     
+    # Generate random bijk parameters (hard coded).
     j1 <- parThree[1] * runif(1, -5.0, 5.0)
     j2 <- parThree[2] * runif(1, -5.0, 5.0)
     j3 <- parThree[3] * runif(1, -5.0, 5.0)
     
+    # Check if HOI parameters are "big enough" (hard coded).
     flag1 = abs(j1) > 0.001
     flag2 = abs(j2) > 0.001
     flag3 = abs(j3) > 0.001
@@ -1441,6 +1494,7 @@ gen_samples_V2 <- function(number, noise, parSingle, parPair, parThree) {
       b231 <- j2
       b312 <- j3
       
+      # Parameter vector par.
       par = c(r1=r1, r2=r2, r3=r3, 
               K1=K1, K2=K2, K3=K3, 
               a12=a12, a13=a13, a21=a21, a23=a23, a31=a31, a32=a32,
@@ -1448,30 +1502,33 @@ gen_samples_V2 <- function(number, noise, parSingle, parPair, parThree) {
       
       tryCatch(
         {
+          # HOI sample.
           outHOI = diffeqr::ode.solve(f = modelHOI, u0 = start, tspan = list(0, 7), p = par, saveat=1.0)
           out2HOI = data.frame(time = outHOI$t, x1 = outHOI$u[,1], x2 = outHOI$u[,2], x3 = outHOI$u[,3])
           out2HOI = out2HOI[-1,]
           colnames(out2HOI) <- c("time", "x1", "x2", "x3")
           
+          # NON-HOI sample.
           outNONHOI = diffeqr::ode.solve(f = modelNONHOI, u0 = start, tspan = list(0, 7), p = par, saveat=1.0)
           out2NONHOI = data.frame(time = outNONHOI$t, x1 = outNONHOI$u[,1], x2 = outNONHOI$u[,2], x3 = outNONHOI$u[,3])
           out2NONHOI = out2NONHOI[-1,]
           colnames(out2NONHOI) <- c("time", "x1", "x2", "x3")
           
+          # Check tolerance level condition.
           flag4 = dist(rbind(unlist(out2HOI), unlist(out2NONHOI))) > TOL
           
           if (flag4) {
-            
+            # Save HOI sample.
             dataOutHOI[index, 1:7]   <- out2HOI$x1
             dataOutHOI[index, 8:14]  <- out2HOI$x2
             dataOutHOI[index, 15:21] <- out2HOI$x3
             dataOutHOI[index, 22]    <- "hoi"
-            
+            # Save NON-HOI sample.
             dataOutNONHOI[index, 1:7]   <- out2NONHOI$x1
             dataOutNONHOI[index, 8:14]  <- out2NONHOI$x2
             dataOutNONHOI[index, 15:21] <- out2NONHOI$x3
             dataOutNONHOI[index, 22]    <- "nonhoi"
-            
+            # Generate and save HOI noisy sample (3-species, three replicates).
             sol = diffeqr::sde.solve(f = modelHOI, g = stochastic, u0 = start, tspan = list(0, 7), p = par, saveat=1.0)
             df = data.frame(time = sol$t, x1 = sol$u[,1], x2 = sol$u[,2], x3 = sol$u[,3])
             df = df[-1,]
@@ -1498,7 +1555,7 @@ gen_samples_V2 <- function(number, noise, parSingle, parPair, parThree) {
             dataOutHOISDE3[index, 8:14]  <- df$x2
             dataOutHOISDE3[index, 15:21] <- df$x3
             dataOutHOISDE3[index, 22]    <- "hoi"
-            
+            # Generate and save HOI noisy sample (1-species, species #1, three replicates).
             sol = diffeqr::sde.solve(f = modelHOI, g = stochastic, u0 = start1, tspan = list(0, 7), p = par, saveat=1.0)
             df = data.frame(time = sol$t, x1 = sol$u[,1], x2 = sol$u[,2], x3 = sol$u[,3])
             df = df[-1,]
@@ -1525,7 +1582,7 @@ gen_samples_V2 <- function(number, noise, parSingle, parPair, parThree) {
             dataOutHOIsingle1SDE3[index, 8:14]  <- df$x2
             dataOutHOIsingle1SDE3[index, 15:21] <- df$x3
             dataOutHOIsingle1SDE3[index, 22]    <- "hoi"
-            
+            # Generate and save HOI noisy sample (1-species, species #2, three replicates).
             sol = diffeqr::sde.solve(f = modelHOI, g = stochastic, u0 = start2, tspan = list(0, 7), p = par, saveat=1.0)
             df = data.frame(time = sol$t, x1 = sol$u[,1], x2 = sol$u[,2], x3 = sol$u[,3])
             df = df[-1,]
@@ -1552,7 +1609,7 @@ gen_samples_V2 <- function(number, noise, parSingle, parPair, parThree) {
             dataOutHOIsingle2SDE3[index, 8:14]  <- df$x2
             dataOutHOIsingle2SDE3[index, 15:21] <- df$x3
             dataOutHOIsingle2SDE3[index, 22]    <- "hoi"
-            
+            # Generate and save HOI noisy sample (1-species, species #3, three replicates).
             sol = diffeqr::sde.solve(f = modelHOI, g = stochastic, u0 = start3, tspan = list(0, 7), p = par, saveat=1.0)
             df = data.frame(time = sol$t, x1 = sol$u[,1], x2 = sol$u[,2], x3 = sol$u[,3])
             df = df[-1,]
@@ -1579,7 +1636,7 @@ gen_samples_V2 <- function(number, noise, parSingle, parPair, parThree) {
             dataOutHOIsingle3SDE3[index, 8:14]  <- df$x2
             dataOutHOIsingle3SDE3[index, 15:21] <- df$x3
             dataOutHOIsingle3SDE3[index, 22]    <- "hoi"
-            
+            # Generate and save HOI noisy sample (2-species, species #1 vs #2, three replicates).
             sol = diffeqr::sde.solve(f = modelHOI, g = stochastic, u0 = start4, tspan = list(0, 7), p = par, saveat=1.0)
             df = data.frame(time = sol$t, x1 = sol$u[,1], x2 = sol$u[,2], x3 = sol$u[,3])
             df = df[-1,]
@@ -1606,7 +1663,7 @@ gen_samples_V2 <- function(number, noise, parSingle, parPair, parThree) {
             dataOutHOIpairwise1SDE3[index, 8:14]  <- df$x2
             dataOutHOIpairwise1SDE3[index, 15:21] <- df$x3
             dataOutHOIpairwise1SDE3[index, 22]    <- "hoi"
-            
+            # Generate and save HOI noisy sample (2-species, species #1 vs #3, three replicates).
             sol = diffeqr::sde.solve(f = modelHOI, g = stochastic, u0 = start5, tspan = list(0, 7), p = par, saveat=1.0)
             df = data.frame(time = sol$t, x1 = sol$u[,1], x2 = sol$u[,2], x3 = sol$u[,3])
             df = df[-1,]
@@ -1633,7 +1690,7 @@ gen_samples_V2 <- function(number, noise, parSingle, parPair, parThree) {
             dataOutHOIpairwise2SDE3[index, 8:14]  <- df$x2
             dataOutHOIpairwise2SDE3[index, 15:21] <- df$x3
             dataOutHOIpairwise2SDE3[index, 22]    <- "hoi"
-            
+            # Generate and save HOI noisy sample (2-species, species #2 vs #3, three replicates).
             sol = diffeqr::sde.solve(f = modelHOI, g = stochastic, u0 = start6, tspan = list(0, 7), p = par, saveat=1.0)
             df = data.frame(time = sol$t, x1 = sol$u[,1], x2 = sol$u[,2], x3 = sol$u[,3])
             df = df[-1,]
@@ -1660,7 +1717,7 @@ gen_samples_V2 <- function(number, noise, parSingle, parPair, parThree) {
             dataOutHOIpairwise3SDE3[index, 8:14]  <- df$x2
             dataOutHOIpairwise3SDE3[index, 15:21] <- df$x3
             dataOutHOIpairwise3SDE3[index, 22]    <- "hoi"
-            
+            # Generate NON-HOI samples.
             sol = diffeqr::sde.solve(f = modelNONHOI, g = stochastic, u0 = start, tspan = list(0, 7), p = par, saveat=1.0)
             out2NONHOISDE1 = data.frame(time = sol$t, x1 = sol$u[,1], x2 = sol$u[,2], x3 = sol$u[,3])
             out2NONHOISDE1 = out2NONHOISDE1[-1,]
@@ -1930,20 +1987,28 @@ gen_samples_V2 <- function(number, noise, parSingle, parPair, parThree) {
 
 
 gen_samples_training_V2 <- function(number, noise, parSingle, parPair, parThree) {
+  # Function to generate synthetic samples to train ML models.
+  # INPUT: number of samples, noise level, 1-species parameters, 
+  # 2-species parameters, 3-species paramenters.
+  # OUTPUT: Dataframes with HOI and NON-HOI samples.
+  # TODO: Remove hard coded dataframes with noisy samples.
   
   modelHOI= function(u, p, t) {
     r1 = p[[1]]
     r2 = p[[2]]
     r3 = p[[3]]
+    
     K1 = p[[4]]
     K2 = p[[5]]
     K3 = p[[6]]
+    
     a12 = p[[7]]
     a13 = p[[8]]
     a21 = p[[9]]
     a23 = p[[10]]
     a31 = p[[11]]
     a32 = p[[12]]
+    
     b123 = p[[13]]
     b231 = p[[14]]
     b312 = p[[15]]
@@ -1962,9 +2027,11 @@ gen_samples_training_V2 <- function(number, noise, parSingle, parPair, parThree)
     r1 = p[[1]]
     r2 = p[[2]]
     r3 = p[[3]]
+    
     K1 = p[[4]]
     K2 = p[[5]]
     K3 = p[[6]]
+    
     a12 = p[[7]]
     a13 = p[[8]]
     a21 = p[[9]]
@@ -1988,7 +2055,7 @@ gen_samples_training_V2 <- function(number, noise, parSingle, parPair, parThree)
     return(-noise^2 * c(u[1], u[2], u[3]))
   }
   
-  
+  # Empty dataframes.
   dataOutHOI <- data.frame(0, 0, 0, 0, 0, 0, 0,
                            0, 0, 0, 0, 0, 0, 0,
                            0, 0, 0, 0, 0, 0, 0,
@@ -2007,18 +2074,24 @@ gen_samples_training_V2 <- function(number, noise, parSingle, parPair, parThree)
                             "x31", "x32", "x33", "x34", "x35", "x36", "x37",
                             "isHOI")
   
+  # Index for keeping track of number of samples generated.
   index <- 1
+  # Tolerance level to accept "sufficiently different" HOI and NON-HOI samples.
   TOL <- 1
+  # Muliplier factor to modify bijk limits.
   jMul <- 1
   
   while (index < number + 1) {
+    # Print progress.
     if (index == 1) { cat("Progress:", index, "\n") }
     if (index %% 10 == 0) { cat("Progress:", index, "\n") }
     
+    # Generate random initial conditions (hard coded).
     start = c(x1=runif(1, min=2, max=10), 
               x2=runif(1, min=2, max=10), 
               x3=runif(1, min=2, max=10))
     
+    # Prepare initial conditions for 1- and 2-species.
     start1 <- c(start[1], 0, 0)
     start2 <- c(0, start[2], 0)
     start3 <- c(0, 0, start[3])
@@ -2026,6 +2099,7 @@ gen_samples_training_V2 <- function(number, noise, parSingle, parPair, parThree)
     start5 <- c(start[1], 0, start[3])
     start6 <- c(0, start[2], start[3])
     
+    # Generate random model parameters (hard coded).
     r1 = parSingle[1,1] * (1 + runif(1, -0.2, 0.2))
     r2 = parSingle[1,2] * (1 + runif(1, -0.2, 0.2))
     r3 = parSingle[1,3] * (1 + runif(1, -0.2, 0.2))
@@ -2047,6 +2121,7 @@ gen_samples_training_V2 <- function(number, noise, parSingle, parPair, parThree)
     j2 <- parThree[2] * runif(1, -2.0 * jMul, 2.0 * jMul)
     j3 <- parThree[3] * runif(1, -2.0 * jMul, 2.0 * jMul)
     
+    # Check if HOI parameters are "big enough" (hard coded).
     flag1 = abs(j1) > 0.00001
     flag2 = abs(j2) > 0.00001
     flag3 = abs(j3) > 0.00001
@@ -2057,6 +2132,7 @@ gen_samples_training_V2 <- function(number, noise, parSingle, parPair, parThree)
       b231 <- j2
       b312 <- j3
       
+      # Parameter vector par.
       par = c(r1=r1, r2=r2, r3=r3, 
               K1=K1, K2=K2, K3=K3, 
               a12=a12, a13=a13, a21=a21, a23=a23, a31=a31, a32=a32,
@@ -2064,36 +2140,37 @@ gen_samples_training_V2 <- function(number, noise, parSingle, parPair, parThree)
       
       tryCatch(
         {
+          # HOI sample.
           outHOI = diffeqr::ode.solve(f = modelHOI, u0 = start, tspan = list(0, 7), p = par, saveat=1.0)
           out2HOI = data.frame(time = outHOI$t, x1 = outHOI$u[,1], x2 = outHOI$u[,2], x3 = outHOI$u[,3])
           out2HOI = out2HOI[-1,]
           colnames(out2HOI) <- c("time", "x1", "x2", "x3")
-          
+          # NON-HOI sample.
           outNONHOI = diffeqr::ode.solve(f = modelNONHOI, u0 = start, tspan = list(0, 7), p = par, saveat=1.0)
           out2NONHOI = data.frame(time = outNONHOI$t, x1 = outNONHOI$u[,1], x2 = outNONHOI$u[,2], x3 = outNONHOI$u[,3])
           out2NONHOI = out2NONHOI[-1,]
           colnames(out2NONHOI) <- c("time", "x1", "x2", "x3")
           
+          # Check tolerance level condition.
           norm_HOINONHOI <- dist(rbind(unlist(out2HOI), unlist(out2NONHOI)))
           #print(norm_HOINONHOI)
           flag4 <- (norm_HOINONHOI > TOL)
           #print(flag4)
           
           if (flag4) {
-
+            # Save HOI sample.
             sol = diffeqr::sde.solve(f = modelHOI, g = stochastic, u0 = start, tspan = list(0, 7), p = par, saveat=1.0)
             df = data.frame(time = sol$t, x1 = sol$u[,1], x2 = sol$u[,2], x3 = sol$u[,3])
             df = df[-1,]
-            
             dataOutHOI[index, 1:7]   <- df$x1
             dataOutHOI[index, 8:14]  <- df$x2
             dataOutHOI[index, 15:21] <- df$x3
             dataOutHOI[index, 22]    <- "hoi"
             
+            # Save NON-HOI sample.
             sol = diffeqr::sde.solve(f = modelNONHOI, g = stochastic, u0 = start, tspan = list(0, 7), p = par, saveat=1.0)
             df = data.frame(time = sol$t, x1 = sol$u[,1], x2 = sol$u[,2], x3 = sol$u[,3])
             df = df[-1,]
-
             dataOutNONHOI[index, 1:7]   <- df$x1
             dataOutNONHOI[index, 8:14]  <- df$x2
             dataOutNONHOI[index, 15:21] <- df$x3
@@ -2103,7 +2180,8 @@ gen_samples_training_V2 <- function(number, noise, parSingle, parPair, parThree)
 
             jMul <- 1
           }
-     else { jMul <- jMul + 0.1 }
+     else { jMul <- jMul + 0.1 # increase jMul to increase noise level por bijk
+          }
         },
         error=function(cond) {
           #index <- index + 1

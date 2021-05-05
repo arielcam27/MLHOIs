@@ -1,3 +1,4 @@
+# required packages
 library(plotly)
 library("FME")
 library(caret)
@@ -9,50 +10,65 @@ require(sets)
 require(growthrates)
 require(magrittr)
 
+# important: JuliaLang and JuliaCall needed
 library(JuliaCall)
-julia_setup(JULIA_HOME = "/home/user/julia-0.6.4/bin")
+julia_setup(JULIA_HOME = "/home/user/julia-0.6.4/bin") # change dir to local Julia
 diffeqr::diffeq_setup()
 
-library(doParallel)
-
-cl <- makePSOCKcluster(30)
-registerDoParallel(cl)
-
-source("get_single_V4.r") # estimate r, K from single-species
+source("get_single_V4.r")   # estimate r, K from single-species
 source("get_pairwise_V4.r") # estimate a_ij from pairwise-species
-source("get_three_V4.r") # estimate b_ijk from threewise-species
-source("gen_samples_V4.r") # generate HOI samples
-source("machine_V4.r") # ML models
-source("bender_V4.r") # Bender-Case test
-source("wootton_V4.r") # Wootton test
+source("get_three_V4.r")    # estimate b_ijk from threewise-species
+source("gen_samples_V4.r")  # generate HOI samples
+source("machine_V4.r")      # ML models
+source("bender_V4.r")       # Bender-Case test
+source("wootton_V4.r")      # Wootton test
 
 #-----------
 
-# STEP 0: Read data and estimate r, K from single species
+# STEP 1: Read data and estimate r, K from 1-species data.
+
+# Input: Three csv files for each species.
+# Current version requires each csv file to have this structure:
+# ____________________________
+# |week|replicate|individuals|
+# ----------------------------
+
+# Current version considerates hard-coded 7 weeks for each replicate.
 
 message("Estimating r, K from single species data...")
 
-# INPUT: csv file
-# OUTPUT: df with time-series and estimated (y0, r, K)
+# INPUT: csv file.
+# OUTPUT: df with time-series ("data") and estimated y0, r, K ("pars").
 
-neb1 <- get_single_week1("./data/1-neb.csv")
-sim1 <- get_single_week1("./data/2-sim.csv")
-ebo1 <- get_single_week1("./data/3-ebo.csv")
+neb1 <- get_single_week1("./data/1-neb.csv") # Nebulosa 1-species data.
+sim1 <- get_single_week1("./data/2-sim.csv") # Simulans 1-species data.
+ebo1 <- get_single_week1("./data/3-ebo.csv") # Ebony 1-species data.
+# TODO: Adapt for n 1-species data.
 
 #------------------
 
-simulateODE1 <- function(df, weekN) { 
+simulateODE1 <- function(df, replicateNum) { 
+# Function to visualize 1-species data vs deterministic logistic growth.
+# df: dataframe with data (parameters and splitted data).
+# replicateNum: replicate number.
+  
   f <- function(u,p,t) {
+  # Logistic growth ODE.
     r = p[1]
     K = p[2]
     du = r*u*(1.0 - u/K)
     return(c(du))
   }
   
-  p <- c(as.numeric(df$pars$r[weekN]), as.numeric(df$pars$K[weekN]), as.numeric(df$pars$y0[weekN]))
+  # parameter vector p=(r, K, y0).
+  p <- c(as.numeric(df$pars$r[replicateNum]), 
+         as.numeric(df$pars$K[replicateNum]), 
+         as.numeric(df$pars$y0[replicateNum]))
   
+  # Initial condition.
   u0 = c(p[3])
   
+  # Time interval (hard coded, 7 weeks).
   tspan <- list(1, 7)
   
   sol = diffeqr::ode.solve(f, u0, tspan, p=p, saveat=1.0)
@@ -60,7 +76,7 @@ simulateODE1 <- function(df, weekN) {
   udf = as.data.frame(sol$u)
   colnames(udf) <- c("sol")
   tt <- df$data[[1]]$time
-  yy <- lapply(df$data[[weekN]], as.double)
+  yy <- lapply(df$data[[replicateNum]], as.double)
   udf <- cbind(tt, udf)
   udf <- cbind(udf, yy)
   print(udf)
@@ -69,35 +85,62 @@ simulateODE1 <- function(df, weekN) {
   fig
 }
 
+# Example: Plot Ebony: replicate #1, data and estimated ODE solution.
 simulateODE1(ebo1, 1)
-
-get_mean <- function(df) { 
-  pars_mean = c(median(unlist(lapply(df$pars$r, as.numeric))),
-                median(unlist(lapply(df$pars$K, as.numeric))),
-                median(unlist(lapply(df$pars$y0, as.numeric)))) # model parameters
-  return(pars_mean)
-}
-
-neb_mean = get_mean(neb1)
-sim_mean = get_mean(sim1)
-ebo_mean = get_mean(ebo1)
 
 #-----------------------------------------
 
-# STEP 2
+get_mean <- function(df) { 
+# Function to retrive 1 value for parameters r, K, y0.
+# Used function: Median.
+  
+  pars_mean = c(median(unlist(lapply(df$pars$r, as.numeric))),
+                median(unlist(lapply(df$pars$K, as.numeric))),
+                median(unlist(lapply(df$pars$y0, as.numeric))))
+  return(pars_mean)
+}
+
+# Obtain 1 value for parameters r, K, y0 for each species.
+neb_mean = get_mean(neb1) # Nebulosa
+sim_mean = get_mean(sim1) # Simulans
+ebo_mean = get_mean(ebo1) # Ebony
+
+#-----------------------------------------
+
+# STEP 2: Read data and estimate a_ij from 2-species data.
+
+# Input: Three csv files for each pair of species.
+# Current version requires each csv file to have this structure:
+# ____________________________________
+# |week|replicate|species 1|species 2|
+# ------------------------------------
+
+# Current version considerates hard-coded 7 weeks for each replicate.
 
 message("Estimating aij from two-species data...")
 
 amin = -20.0
 amax =  20.0
 
+# INPUT: csv file, 2 dataframes with 1-species parameters, and lower-upper limits for aij.
+# OUTPUT: df with time-series ("data") and estimated a12, a21, x10, x20.
+
+# Estimate Nebulosa vs Simulans aij.
 df_neb_sim0 <- get_pairwise_week1("./data/4-neb_sim.csv", neb_mean, sim_mean, amin, amax)
+# Estimate Nebulosa vs Ebony aij.
 df_neb_ebo0 <- get_pairwise_week1("./data/5-neb_ebo.csv", neb_mean, ebo_mean, amin, amax)
+# Estimate Simulans vs Ebony aij.
 df_sim_ebo0 <- get_pairwise_week1("./data/6-sim_ebo.csv", sim_mean, ebo_mean, amin, amax)
 
-simulateODE2 <- function(df1, df2, df3, speciesN, weekN) { 
-  # SDE model: deterministic part
+
+simulateODE2 <- function(df1, df2, df3, speciesN, replicateNum) { 
+# Function to visualize 2-species data vs deterministic Lotka-Volterra model.
+# df: dataframe with data (parameters and splitted data).
+# replicateNum: replicate number.  
+  
   f <- function(u,p,t) {
+  # SDE model: deterministic part.
+    
     r1  = p[1]
     r2  = p[2]
     K1  = p[3]
@@ -110,40 +153,44 @@ simulateODE2 <- function(df1, df2, df3, speciesN, weekN) {
     return(c(du1, du2))
   }
   
-  p <- c(as.numeric(df1$pars$r[weekN]),
-         as.numeric(df2$pars$r[weekN]),
-         as.numeric(df1$pars$K[weekN]),
-         as.numeric(df2$pars$K[weekN]), 
-         as.numeric(df3$pars$a12[weekN]),
-         as.numeric(df3$pars$a21[weekN]),
-         as.numeric(df3$pars$x10[weekN]),
-         as.numeric(df3$pars$x20[weekN]))
+  # Parameter vector p=(r1,r2,K1,K2,a12,a21,x10,x20)
+  p <- c(as.numeric(df1$pars$r[replicateNum]),
+         as.numeric(df2$pars$r[replicateNum]),
+         as.numeric(df1$pars$K[replicateNum]),
+         as.numeric(df2$pars$K[replicateNum]), 
+         as.numeric(df3$pars$a12[replicateNum]),
+         as.numeric(df3$pars$a21[replicateNum]),
+         as.numeric(df3$pars$x10[replicateNum]),
+         as.numeric(df3$pars$x20[replicateNum]))
   
+  # Initial condition.
   u0 = c(p[7], p[8])
-  
+  # Time interval (hard coded, 7 weeks).
   tspan <- list(1, 7)
   
   sol = diffeqr::ode.solve(f, u0, tspan, p=p, saveat=1.0)
   
   udf = as.data.frame(sol$u)
-  tt <- df3$data[[weekN]]$time
-  yy1 <- df3$data[[weekN]]$x1
-  #print(yy1)
-  yy2 <- df3$data[[weekN]]$x2
+  tt <- df3$data[[replicateNum]]$time
+  yy1 <- df3$data[[replicateNum]]$x1
+  
+  yy2 <- df3$data[[replicateNum]]$x2
   yy <- data.frame(yy1, yy2)
   udf <- cbind(tt, udf)
   udf <- cbind(udf, yy)
-  #print(yy)
+  
   fig <- plotly::plot_ly(x = 1:7, y = ~sol$u[,speciesN], type = 'scatter', mode = 'lines')
   fig <- plotly::add_trace(fig, x = 1:7, y = yy[, speciesN], mode = 'markers')
   fig
 }
 
-simulateODE2(neb1, sim1, df_neb_sim0, 1, 1)
+# Example: Plot Nebulosa vs Simulans: replicate #3, plot species #2 (Simulans) data 
+# and estimated ODE solution.
 simulateODE2(neb1, ebo1, df_neb_ebo0, 2, 3)
-simulateODE2(sim1, ebo1, df_sim_ebo0, 1, 3)
 
 get_mean2 <- function(df) { 
+  # Function to retrive 1 value for parameters a12,a21,x10,x20.
+  # Used function: Median.
   pars_mean = c(median(unlist(lapply(df$pars$a12, as.numeric))),
                 median(unlist(lapply(df$pars$a21, as.numeric))),
                 median(unlist(lapply(df$pars$x10, as.numeric))),
@@ -151,27 +198,45 @@ get_mean2 <- function(df) {
   return(pars_mean)
 }
 
-neb_sim_mean = get_mean2(df_neb_sim0)
-neb_ebo_mean = get_mean2(df_neb_ebo0)
-sim_ebo_mean = get_mean2(df_sim_ebo0)
+# Obtain 1 value for parameters a12, a21, x10, x20 for each pair of species.
+neb_sim_mean = get_mean2(df_neb_sim0) # Nebulosa vs Simulans.
+neb_ebo_mean = get_mean2(df_neb_ebo0) # Nebulosa vs Ebony.
+sim_ebo_mean = get_mean2(df_sim_ebo0) # Simulans vs Ebony.
 
 #------------------------------------------
 
-# STEP 3
+
+# STEP 2: Read data and estimate b_ijk from 3-species data.
+
+# Input: One csv file.
+# Current version requires each csv file to have this structure:
+# ______________________________________________
+# |week|replicate|species 1|species 2|species 3|
+# ----------------------------------------------
+
+# Current version considerates hard-coded 7 weeks for each replicate.
 
 message("Estimating bijk from three-species data...")
 
+# Hard coded min and max values for bijk parameters.
 bmin = -5.0
 bmax =  5.0
 
+# 1-species parameters.
 parSingle <- cbind(neb_mean, sim_mean, ebo_mean)
+# 2-species parameters.
 parPair   <- cbind(neb_sim_mean, neb_ebo_mean, sim_ebo_mean)
 
 print(parSingle)
 print(parPair)
 
+# INPUT: csv file, 1-species parameters, 2-species parameters, and lower-upper limits for bijk.
+# OUTPUT: df with time-series ("data") and estimated b123, b231, b312.
+
+# Estimate bijk.
 df_neb_sim_ebo <- get_three_week("./data/7-neb_sim_ebo.csv", parSingle, parPair, bmin, bmax)
 
+# Get 1 value for b123, b231, b312.
 get_mean3 <- function(df) { 
   pars_mean = c(median(unlist(lapply(df$pars$b123, as.numeric))),
                 median(unlist(lapply(df$pars$b231, as.numeric))),
@@ -182,9 +247,13 @@ get_mean3 <- function(df) {
 parThree = get_mean3(df_neb_sim_ebo)
 print(parThree)
 
-simulateODE3 <- function(parSingle, parPair, df3, speciesN, weekN) { 
-  # SDE model: deterministic part
+simulateODE3 <- function(parSingle, parPair, df3, speciesN, replicateNum) { 
+  # Function to visualize 3-species data vs deterministic HOI model.
+  # df: dataframe with data (parameters and splitted data).
+  # replicateNum: replicate number.  
+  
   f <- function(u,p,t) {
+  # SDE model: deterministic part.
     r1 = parSingle[1,1]
     r2 = parSingle[1,2]
     r3 = parSingle[1,3]
@@ -220,25 +289,23 @@ simulateODE3 <- function(parSingle, parPair, df3, speciesN, weekN) {
     return(c(du1, du2, du3))
   }
   
-  #p = c(mean(unlist(lapply(df$r, as.numeric))), 
-  #      mean(unlist(lapply(df$K, as.numeric))), 
-  #      mean(unlist(lapply(df$y0, as.numeric)))) # model parameters
   
   p <- 0
   
+  # Initial condition (hard coded, 5 individuals per species in this problem).
   u0 = c(5, 5, 5)
-  #print(p)
   
-  tspan <- list(1, 7) # time from week 1
+  # Time interval (hard coded, 7 weeks).
+  tspan <- list(1, 7)
   
   sol = diffeqr::ode.solve(f, u0, tspan, saveat=1.0)
   
   udf = as.data.frame(sol$u)
-  tt <- df3$data[[weekN]]$time
-  yy1 <- df3$data[[weekN]]$x1
+  tt <- df3$data[[replicateNum]]$time
+  yy1 <- df3$data[[replicateNum]]$x1
   #print(yy1)
-  yy2 <- df3$data[[weekN]]$x2
-  yy3 <- df3$data[[weekN]]$x3
+  yy2 <- df3$data[[replicateNum]]$x2
+  yy3 <- df3$data[[replicateNum]]$x3
   yy <- data.frame(yy1, yy2, yy3)
   udf <- cbind(tt, udf)
   udf <- cbind(udf, yy)
@@ -248,13 +315,14 @@ simulateODE3 <- function(parSingle, parPair, df3, speciesN, weekN) {
   fig
 }
 
-simulateODE3(parSingle, parPair, df_neb_sim_ebo, 1, 1)
-simulateODE3(parSingle, parPair, df_neb_sim_ebo, 2, 1)
-simulateODE3(parSingle, parPair, df_neb_sim_ebo, 3, 1)
+# Example: Plot Nebulosa vs Simulans vs Ebony: 
+# replicate #3, plot species #2 (Simulans) data 
+simulateODE3(parSingle, parPair, df_neb_sim_ebo, 2, 3)
 
 #--------------------------------
 message("Generating testing samples...")
-# gen_samples_V2: LV parameters as is, IC random, bijk random -10 to 10
+# gen_samples_V2: Lotka-Volteraa parameters as is. 
+# Random initial conditions, bijk random from -10 to 10 (hard coded).
 
 number = 1000
 
@@ -1007,5 +1075,3 @@ predict(list_knn$fit, sample3)
 predict(list_svm$fit, sample1)
 predict(list_svm$fit, sample2)
 predict(list_svm$fit, sample3)
-
-stopCluster(cl)

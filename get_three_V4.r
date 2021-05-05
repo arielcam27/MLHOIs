@@ -1,6 +1,12 @@
 
 
 get_three_week <- function(file, parSingle, parPair, bmin, bmax)  {
+  # Function to estimate parameters from 3-species data.
+  # INPUT: csv file, species #1 parameters, species #2 parameters, species #3
+  # parameters, min value for bijk, and max value for bijk.
+  # OUTPUT: Dataframe with parameters "p" (x10,x20,x30,b123,b231,b312) and 
+  # splitted data "data".
+  
   dataOut <-read.table(file,sep=",")
   colnames(dataOut) <- c("time", "replicate", "x1", "x2", "x3")
   
@@ -41,14 +47,14 @@ get_three_week <- function(file, parSingle, parPair, bmin, bmax)  {
     )
   }
   
-  # initial "guess"
+  # Hard coded mid value for bijk guess.
   bmid = 0.01 * amin
   
+  # Intervals hard coded. Customize for another problem.
   low <-   c(x10 = 1.0,  x20 = 1.0,  x30 = 1.0,  b123=bmin, b231=bmin, b312=bmin)
   par <-   c(x10 = 5.0,  x20 = 5.0,  x30 = 5.0,  b123=bmid, b231=bmid, b312=bmid)
   up <-    c(x10 = 10.0, x20 = 10.0, x30 = 10.0, b123=bmax, b231=bmax, b312=bmax)
   
-  # model cost,
   ModelCost3 <- function(P) {
     tspan <- list(0, 7)
     x10 = P["x10"]

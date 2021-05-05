@@ -1,5 +1,8 @@
 
 get_single_week1 <- function(file)  {
+# Function to estimate parameters from 1-species data.
+# INPUT: csv file.
+# OUTPUT: Dataframe with parameters "pars" (y0, k, K) and splitted data "data".
 
   dataOut <-read.table(file,sep=",")
   colnames(dataOut) <- c("time", "replicate", "x1")
@@ -14,7 +17,8 @@ get_single_week1 <- function(file)  {
       return(du)
     })
   }
-    
+  
+  # Intervals hard coded. Customize for another problem.
   low <- c(y0 = 10.00, r = 0.10, K = 100)
   par <- c(y0 = 25.00, r = 1.00, K = 500)
   upp <- c(y0 = 30.00, r = 10.0, K = 1500)

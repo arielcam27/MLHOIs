@@ -1,4 +1,8 @@
 get_pairwise_week1 <- function(file, df1, df2, amin, amax)  {
+  # Function to estimate parameters from 2-species data.
+  # INPUT: csv file, species #1 parameters, species #2 parameters, min value 
+  # for aij, and max value for aij.
+  # OUTPUT: Dataframe with parameters "p" (x0, y0, a12, a21) and splitted data "data".
   
   dataOut <-read.table(file,sep=",")
   colnames(dataOut) <- c("time", "replicate", "x1", "x2")
@@ -21,8 +25,10 @@ get_pairwise_week1 <- function(file, df1, df2, amin, amax)  {
     })
   }
   
+  # Hard coded mid value for aij guess.
   amid = 0.01 * amin
   
+  # Intervals hard coded. Customize for another problem.
   low <- c(x10 = 5.00, x20 = 5.00, a12 = amin, a21 = amin)
   par <- c(x10 = 15.0, x20 = 15.0, a12 = amid, a21 = amid)
   upp <- c(x10 = 20.0, x20 = 20.0, a12 = amax, a21 = amax)
