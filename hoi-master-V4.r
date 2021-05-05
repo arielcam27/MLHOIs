@@ -376,6 +376,8 @@ for (ii in 1:number){
 # STEP 4: Perform classical tests.
 
 change_ABC <- function(df1, df2, df3, row, column) {
+  # Function to re-organize data to perform tests.
+  
   Out <- data.frame(0, 0, 0)
   colnames(Out) <- c("week", "replicate", "x1")
   Out <- Out[-1,]
@@ -399,9 +401,12 @@ change_ABC <- function(df1, df2, df3, row, column) {
   return(Out)
 }
 
+# Check.
 print(change_ABC(df_res1$df_HOI13SDE1, df_res1$df_HOI13SDE2, df_res1$df_HOI13SDE3, 1, 1))
 
 check_HOI_bender <- function(df_res, row) {
+  # Function to perform Bender-Case test: HOI samples.
+  
   aux <- 0
   
   data_A <- change_ABC(df_res$df_HOI1SDE1, df_res$df_HOI1SDE2, df_res$df_HOI1SDE3, row, 1)
@@ -425,6 +430,8 @@ check_HOI_bender <- function(df_res, row) {
 }
 
 check_NONHOI_bender <- function(df_res, row) {
+  # Function to perform Bender-Case test: NON-HOI samples.
+  
   aux <- 0
 
   data_A <- change_ABC(df_res$df_NONHOI1SDE1, df_res$df_NONHOI1SDE2, df_res$df_NONHOI1SDE3, row, 1)
@@ -451,6 +458,8 @@ check_HOI_bender(df_res3, 4)
 check_NONHOI_bender(df_res3, 10)
 
 message("Check: Bender...")
+
+# Test set 1.
 totalHOIbender1 <- 0
 for (ii in 1:number) {
   if (ii %% floor(number/10) == 0) { cat("Progress:", ii, "\n") }
@@ -468,6 +477,7 @@ for (ii in 1:number) {
   }
 }
 
+# Test set 2.
 totalHOIbender2 <- 0
 for (ii in 1:number) {
   if (ii %% floor(number/10) == 0) { cat("Progress:", ii, "\n") }
@@ -476,21 +486,6 @@ for (ii in 1:number) {
   }
 }
 
-totalHOIbender3 <- 0
-for (ii in 1:number) {
-  if (ii %% floor(number/10) == 0) { cat("Progress:", ii, "\n") }
-  if (check_HOI_bender(df_res3, ii) > 1) {
-    totalHOIbender3 <- totalHOIbender3 + 1
-  }
-}
-
-totalHOIbender4 <- 0
-for (ii in 1:number) {
-  if (ii %% floor(number/10) == 0) { cat("Progress:", ii, "\n") }
-  if (check_HOI_bender(df_res4, ii) > 1) {
-    totalHOIbender4 <- totalHOIbender4 + 1
-  }
-}
 
 totalNONHOIbender2 <- 0
 for (ii in 1:number) {
@@ -498,6 +493,15 @@ for (ii in 1:number) {
   aux = check_NONHOI_bender(df_res2, ii)
   if (aux < 2) {
     totalNONHOIbender2 <- totalNONHOIbender2 + 1
+  }
+}
+
+# Test set 3.
+totalHOIbender3 <- 0
+for (ii in 1:number) {
+  if (ii %% floor(number/10) == 0) { cat("Progress:", ii, "\n") }
+  if (check_HOI_bender(df_res3, ii) > 1) {
+    totalHOIbender3 <- totalHOIbender3 + 1
   }
 }
 
@@ -509,6 +513,16 @@ for (ii in 1:number) {
     totalNONHOIbender3 <- totalNONHOIbender3 + 1
   }
 }
+
+# Test set 4.
+totalHOIbender4 <- 0
+for (ii in 1:number) {
+  if (ii %% floor(number/10) == 0) { cat("Progress:", ii, "\n") }
+  if (check_HOI_bender(df_res4, ii) > 1) {
+    totalHOIbender4 <- totalHOIbender4 + 1
+  }
+}
+
 
 totalNONHOIbender4 <- 0
 for (ii in 1:number) {
@@ -523,6 +537,8 @@ for (ii in 1:number) {
 
 
 check_HOI_wootton <- function(df_res, row) {
+  # Function to perform Wootton test: HOI samples.
+  
   aux <- 0
 
   data_A <- change_ABC(df_res$df_HOI1SDE1, df_res$df_HOI1SDE2, df_res$df_HOI1SDE3, row, 1)
@@ -546,6 +562,9 @@ check_HOI_wootton <- function(df_res, row) {
 }
 
 check_NONHOI_wootton <- function(df_res, row) {
+  # Function to perform Wootton test: NON-HOI samples.
+  
+  
   aux <- 0
 
   data_A <- change_ABC(df_res$df_NONHOI1SDE1, df_res$df_NONHOI1SDE2, df_res$df_NONHOI1SDE3, row, 1)
@@ -661,6 +680,7 @@ df_train4 = gen_samples_training_V2(number_train, noise, parSingle, parPair, par
 noise = 0.2
 df_train5 = gen_samples_training_V2(number_train, noise, parSingle, parPair, parThree)
 
+# Prepare dataframes to train ML models.
 HOI1 = df_train1$df_HOI
 HOI2 = df_train2$df_HOI
 HOI3 = df_train3$df_HOI
@@ -685,6 +705,7 @@ NONHOI = rbind(NONHOI, NONHOI5)
 
 df_train = list(df_HOI = HOI, df_NONHOI = NONHOI)
 
+# Check.
 plot(1:21, df_train$df_HOI[1,1:21])
 for (ii in 1:number_train){
   lines(1:21, df_train$df_HOI[ii,1:21], col='blue')
@@ -995,6 +1016,7 @@ for (ii in 1:number) {
 
 # STEP 7: Predict HOI/NON-HOI label for experimental data.
 
+# Bender-Case test.
 dataOut_A <-read.table("./data/1-neb.csv",sep=",")
 colnames(dataOut_A) <- c("week", "replicate", "x1")
 dataOut_AB <-read.table("./data/4-neb_sim.csv",sep=",")
@@ -1027,6 +1049,7 @@ bendertest(dataOut_A, dataOut_AB, dataOut_AC, dataOut_ABC)
 
 #---
 
+# Wootton test.
 dataOut_A <-read.table("./data/1-neb.csv",sep=",")
 colnames(dataOut_A) <- c("week", "replicate", "x1")
 dataOut_AB <-read.table("./data/4-neb_sim.csv",sep=",")
@@ -1057,7 +1080,10 @@ dataOut_ABC <-read.table("./data/7-neb_sim_ebo.csv",sep=",")
 colnames(dataOut_ABC) <- c("week", "replicate", "x2", "x3", "x1")
 woottontest(dataOut_A, dataOut_AB, dataOut_AC, dataOut_ABC)
 
+
 getSampleHOI <- function(ii) {
+  # Function to prepare experimental data for ML model prediction.
+  
   dataSample <-read.table("./data/7-neb_sim_ebo.csv",sep=",")
   colnames(dataSample) <- c("week", "replicate", "x1", "x2", "x3")
   splitted.data <- multisplit(dataSample, c("replicate"))
@@ -1074,18 +1100,22 @@ getSampleHOI <- function(ii) {
   return(dataSample2)
 }
 
+# Replicates.
 sample1 <- getSampleHOI(1)
 sample2 <- getSampleHOI(2)
 sample3 <- getSampleHOI(3)
 
+# GLM test.
 predict(list_glm$fit, sample1)
 predict(list_glm$fit, sample2)
 predict(list_glm$fit, sample3)
 
+# KNN test.
 predict(list_knn$fit, sample1)
 predict(list_knn$fit, sample2)
 predict(list_knn$fit, sample3)
 
+# SVM test.
 predict(list_svm$fit, sample1)
 predict(list_svm$fit, sample2)
 predict(list_svm$fit, sample3)

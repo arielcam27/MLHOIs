@@ -34,6 +34,8 @@ get_pairwise_week1 <- function(file, df1, df2, amin, amax)  {
   upp <- c(x10 = 20.0, x20 = 20.0, a12 = amax, a21 = amax)
   
   ModelCost1 <- function(P) {
+    # Cost function for model fitting.
+    
     tspan <- list(0, 7)
     x10 = P["x10"]
     x20 = P["x20"]

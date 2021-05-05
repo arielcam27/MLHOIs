@@ -56,6 +56,8 @@ get_three_week <- function(file, parSingle, parPair, bmin, bmax)  {
   up <-    c(x10 = 10.0, x20 = 10.0, x30 = 10.0, b123=bmax, b231=bmax, b312=bmax)
   
   ModelCost3 <- function(P) {
+    # Cost function for model fitting.
+    
     tspan <- list(0, 7)
     x10 = P["x10"]
     x20 = P["x20"]

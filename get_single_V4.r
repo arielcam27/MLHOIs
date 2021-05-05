@@ -24,6 +24,8 @@ get_single_week1 <- function(file)  {
   upp <- c(y0 = 30.00, r = 10.0, K = 1500)
   
   ModelCost1 <- function(P) {
+    # Cost function for model fitting.
+    
     tspan <- list(0, 7)
     u0 = P["y0"]
     par[2] = P["r"]
