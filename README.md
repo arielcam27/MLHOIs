@@ -48,3 +48,4 @@ In the hoi-master-V4.r script, the following steps are performed:
 - Bache, S. M., & Wickham, H. (2020). Package ‘magrittr’.
 - Li, C. (2019). JuliaCall: an R package for seamless integration between R and Julia. Journal of Open Source Software, 4(35), 1284.
 - Calaway, R., Weston, S., & Tenenbaum, D. (2015). Package ‘doParallel’.
+- Rackauckas, C., & Nie, Q. (2017). Differentialequations.jl – A performant and feature-rich ecosystem for solving differential equations in Julia. Journal of Open Research Software, 5(1).
