@@ -34,3 +34,17 @@ In the hoi-master-V4.r script, the following steps are performed:
 - **STEP 6.** Generate synthetic training samples for ML models.
 - **STEP 7.** Challenge ML models on synthetic samples.
 - **STEP 8.** Predict HOI/NON-HOI label for experimental data.
+
+# References for R Packages
+
+- Soetaert, K., & Petzoldt, T. (2010). Inverse modelling, sensitivity and Monte Carlo analysis in R using package FME. Journal of statistical software, 33, 1-28.
+- Kuhn, M. (2015). Caret: classification and regression training. Astrophysics Source Code Library, ascl-1505.
+- Xavier Robin, Natacha Turck, Alexandre Hainard, Natalia Tiberti, Frédérique Lisacek, Jean-Charles Sanchez and Markus Müller (2011). “pROC: an open-source package for R and S+ to analyze and compare ROC curves”. BMC Bioinformatics, 12, p. 77. DOI: doi: 10.1186/147121051277
+- Meyer, D., Dimitriadou, E., Hornik, K., Weingessel, A., Leisch, F., Chang, C. C., & Lin, C. C.  (2019). Package ‘e1071’. The R Journal.
+- Pinheiro, J., Bates, D., DebRoy, S., Sarkar, D., Heisterkamp, S., Van Willigen, B., & Ranke, J. (2017). Package ‘nlme’. Linear and nonlinear mixed effects models, version, 3(1).
+- Kassambara, A. (2020). Package ‘ggpubr’.
+- Meyer, D., Hornik, K., & Buchta, C. (2017). Package ‘sets’.
+- Petzoldt, T. (2019). Estimation of Growth Rates with Package Growthrates.
+- Bache, S. M., & Wickham, H. (2020). Package ‘magrittr’.
+- Li, C. (2019). JuliaCall: an R package for seamless integration between R and Julia. Journal of Open Source Software, 4(35), 1284.
+- Calaway, R., Weston, S., & Tenenbaum, D. (2015). Package ‘doParallel’.
